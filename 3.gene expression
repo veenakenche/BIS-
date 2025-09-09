@@ -1,0 +1,101 @@
+import random
+
+def objective_function(x):
+    return x**2
+
+POPULATION_SIZE = 30
+NUM_GENES = 16
+MUTATION_RATE = 0.01
+CROSSOVER_RATE = 0.7
+NUM_GENERATIONS = 5
+X_MIN = -10
+X_MAX = 10
+
+def decode_gene(gene):
+    gene_str = ''.join(str(bit) for bit in gene)
+    integer_value = int(gene_str, 2)
+    max_int = 2**NUM_GENES - 1
+    x = X_MIN + (X_MAX - X_MIN) * integer_value / max_int
+    return x
+
+def initialize_population():
+    population = []
+    for _ in range(POPULATION_SIZE):
+        gene = [random.randint(0, 1) for _ in range(NUM_GENES)]
+        population.append(gene)
+    return population
+
+def evaluate_population(population):
+    fitnesses = []
+    for gene in population:
+        x = decode_gene(gene)
+        fitness = objective_function(x)
+        fitnesses.append(fitness)
+    return fitnesses
+
+def select_parents(population, fitnesses):
+    max_fit = max(fitnesses)
+    adjusted_fitnesses = [max_fit - f + 1e-6 for f in fitnesses]
+    total = sum(adjusted_fitnesses)
+    probs = [f / total for f in adjusted_fitnesses]
+
+    selected = []
+    for _ in range(POPULATION_SIZE):
+        r = random.random()
+        cumulative = 0
+        for gene, p in zip(population, probs):
+            cumulative += p
+            if r <= cumulative:
+                selected.append(gene)
+                break
+    return selected
+
+def crossover(parent1, parent2):
+    if random.random() > CROSSOVER_RATE:
+        return parent1[:], parent2[:]
+    point = random.randint(1, NUM_GENES - 1)
+    child1 = parent1[:point] + parent2[point:]
+    child2 = parent2[:point] + parent1[point:]
+    return child1, child2
+
+def mutate(gene):
+    mutated_gene = gene[:]
+    for i in range(len(mutated_gene)):
+        if random.random() < MUTATION_RATE:
+            mutated_gene[i] = 1 - mutated_gene[i]
+    return mutated_gene
+
+def gene_expression_algorithm():
+    population = initialize_population()
+    best_solution = None
+    best_fitness = float('inf')
+
+    for generation in range(NUM_GENERATIONS):
+        fitnesses = evaluate_population(population)
+
+        for gene, fitness in zip(population, fitnesses):
+            if fitness < best_fitness:
+                best_fitness = fitness
+                best_solution = gene[:]
+
+        print(f"Generation {generation+1}: Best Fitness = {best_fitness:.6f}")
+
+        selected = select_parents(population, fitnesses)
+
+        new_population = []
+        for i in range(0, POPULATION_SIZE, 2):
+            parent1 = selected[i]
+            parent2 = selected[i+1 if i+1 < POPULATION_SIZE else 0]
+            child1, child2 = crossover(parent1, parent2)
+            child1 = mutate(child1)
+            child2 = mutate(child2)
+            new_population.extend([child1, child2])
+
+        population = new_population[:POPULATION_SIZE]
+
+    best_x = decode_gene(best_solution)
+    print("\nBest solution found:")
+    print(f"x = {best_x:.6f}, f(x) = {best_fitness:.6f}")
+
+if __name__ == "__main__":
+    gene_expression_algorithm()
