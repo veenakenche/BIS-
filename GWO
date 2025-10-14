@@ -1,0 +1,64 @@
+import random
+
+def objective_function(x):
+    return sum(val ** 2 for val in x)
+
+def GWO(obj_func, dim, n_wolves, max_iter, lb, ub):
+    wolves = [[random.uniform(lb, ub) for _ in range(dim)] for _ in range(n_wolves)]
+    alpha_pos = [0.0] * dim
+    alpha_score = float("inf")
+    beta_pos = [0.0] * dim
+    beta_score = float("inf")
+    delta_pos = [0.0] * dim
+    delta_score = float("inf")
+
+    for t in range(max_iter):
+        for i in range(n_wolves):
+            fitness = obj_func(wolves[i])
+            if fitness < alpha_score:
+                delta_score, delta_pos = beta_score, beta_pos[:]
+                beta_score, beta_pos = alpha_score, alpha_pos[:]
+                alpha_score, alpha_pos = fitness, wolves[i][:]
+            elif fitness < beta_score:
+                delta_score, delta_pos = beta_score, beta_pos[:]
+                beta_score, beta_pos = fitness, wolves[i][:]
+            elif fitness < delta_score:
+                delta_score, delta_pos = fitness, wolves[i][:]
+
+        a = 2 - t * (2 / max_iter)
+        for i in range(n_wolves):
+            for j in range(dim):
+                r1, r2 = random.random(), random.random()
+                A1 = 2 * a * r1 - a
+                C1 = 2 * r2
+                D_alpha = abs(C1 * alpha_pos[j] - wolves[i][j])
+                X1 = alpha_pos[j] - A1 * D_alpha
+
+                r1, r2 = random.random(), random.random()
+                A2 = 2 * a * r1 - a
+                C2 = 2 * r2
+                D_beta = abs(C2 * beta_pos[j] - wolves[i][j])
+                X2 = beta_pos[j] - A2 * D_beta
+
+                r1, r2 = random.random(), random.random()
+                A3 = 2 * a * r1 - a
+                C3 = 2 * r2
+                D_delta = abs(C3 * delta_pos[j] - wolves[i][j])
+                X3 = delta_pos[j] - A3 * D_delta
+
+                wolves[i][j] = (X1 + X2 + X3) / 3
+                if wolves[i][j] < lb:
+                    wolves[i][j] = lb
+                elif wolves[i][j] > ub:
+                    wolves[i][j] = ub
+        print("Iteration", t + 1, "Best Fitness:", alpha_score)
+    return alpha_score, alpha_pos
+
+dim = 5
+n_wolves = 20
+max_iter = 50
+lb = -10
+ub = 10
+best_score, best_pos = GWO(objective_function, dim, n_wolves, max_iter, lb, ub)
+print("Best Solution:", best_pos)
+print("Best Fitness Value:", best_score)
