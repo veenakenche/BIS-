@@ -1,0 +1,63 @@
+import random
+
+X = [
+    [1, 0, 1, 0, 1],
+    [0, 1, 1, 0, 0],
+    [1, 1, 0, 1, 0],
+    [0, 0, 1, 1, 1]
+]
+y = [1, 0, 1, 0]
+
+def fitness(feature_subset):
+    correct = 0
+    for i in range(len(X)):
+        prediction = sum([X[i][j] * feature_subset[j] for j in range(len(feature_subset))])
+        prediction = 1 if prediction >= 1 else 0
+        if prediction == y[i]:
+            correct += 1
+    accuracy = correct / len(X)
+    penalty = sum(feature_subset) * 0.05
+    return -(accuracy - penalty)
+
+def random_solution(n_features):
+    return [random.randint(0, 1) for _ in range(n_features)]
+
+def levy_flight(solution):
+    new_solution = solution[:]
+    flip = random.randint(0, len(solution)-1)
+    new_solution[flip] = 1 - new_solution[flip]
+    return new_solution
+
+def cuckoo_search_feature_selection(n_features, n_nests=3, pa=0.25, max_iter=5):
+    nests = [random_solution(n_features) for _ in range(n_nests)]
+    fitness_values = [fitness(n) for n in nests]
+    best_idx = fitness_values.index(min(fitness_values))
+    best_nest = nests[best_idx]
+    
+    for iteration in range(1, max_iter+1):
+        print(f"\n--- Iteration {iteration} ---")
+        for i in range(n_nests):
+            new_nest = levy_flight(nests[i])
+            new_fit = fitness(new_nest)
+            print(f"Nest {i+1} old: {nests[i]}, fitness: {fitness_values[i]:.3f}")
+            print(f"Nest {i+1} new: {new_nest}, fitness: {new_fit:.3f}")
+            if new_fit < fitness_values[i]:
+                nests[i] = new_nest
+                fitness_values[i] = new_fit
+                print(f"Nest {i+1} updated!")
+            if new_fit < fitness(best_nest):
+                best_nest = new_nest
+        for i in range(n_nests):
+            if random.random() < pa:
+                nests[i] = random_solution(n_features)
+                fitness_values[i] = fitness(nests[i])
+                print(f"Nest {i+1} abandoned and replaced with {nests[i]}")
+        best_idx = fitness_values.index(min(fitness_values))
+        best_nest = nests[best_idx]
+        print(f"Best nest this iteration: {best_nest}, fitness: {fitness(best_nest):.3f}")
+    
+    print("\n=== Final Best Feature Subset ===")
+    print(f"Features: {best_nest}, Fitness: {fitness(best_nest):.3f}")
+    return best_nest
+
+best_features = cuckoo_search_feature_selection(n_features=5)
